@@ -1,5 +1,6 @@
 
-![WhatsApp Image 2023-11-05 at 14 36 12_f67d55cb](https://github.com/orcohen9826/Buzzer/assets/59200103/71072254-6822-4747-ae23-ee7a1dab635b)
+![image](https://github.com/orcohen9826/Buzzer/assets/59200103/dffebd63-dbf8-47f4-922b-72c65b1f4354)
+
 # Quiz Buzzer System
 
 ## Overview
