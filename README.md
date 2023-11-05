@@ -28,7 +28,7 @@ The project is developed using Visual Studio Code with PlatformIO.
 ### Steps
 1. **Clone the Repository:**
     ```sh
-    git clone <[your-repository-link](https://github.com/orcohen9826/Buzzer.git)>
+    git clone https://github.com/orcohen9826/Buzzer.git
     ```
 2. **Open in VSCode:** Navigate to the project folder and open it using VSCode.
 3. **Install Dependencies:** Ensure all libraries and dependencies are installed through PlatformIO.
