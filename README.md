@@ -1,4 +1,5 @@
 # Quiz Buzzer System
+![WhatsApp Image 2023-11-05 at 14 36 12_f67d55cb](https://github.com/orcohen9826/Buzzer/assets/59200103/71072254-6822-4747-ae23-ee7a1dab635b)
 
 ## Overview
 This project is a wireless quiz buzzer system designed for quiz games where participants answer questions by pressing their respective buzzers. The system consists of multiple buzzers and a central controller that connects to an external speaker.
