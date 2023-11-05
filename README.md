@@ -1,7 +1,7 @@
 # Quiz Buzzer System
 
 ## Overview
-This project is a wireless quiz buzzer system designed for quiz games where participants answer questions by pressing their respective buzzers. The system consists of multiple buzzers and a central controller that connects to a DJ system.
+This project is a wireless quiz buzzer system designed for quiz games where participants answer questions by pressing their respective buzzers. The system consists of multiple buzzers and a central controller that connects to an external speaker.
 
 ## Components
 
