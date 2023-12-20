@@ -132,6 +132,13 @@ void setup() {
 
 
 void loop() {
+  // if buttomn fress one waite (with millis) until alaoud to press again
+  time_t now = millis();
+  static time_t lastPress = 0;
+  if (now - lastPress < 1000) {
+    return;
+  }
+
   buttonState = digitalRead(buttonPin);
   if (buttonState == LOW) { // Button is pressed
     sendPressedMsg();
@@ -175,7 +182,7 @@ void set_led_color(String color)
    else if (color == "OFF")
     set_color = NeoPixel.Color(0, 0, 0);
 
-  for(int i = 0; i < LED_COUNT; i+=2)
+  for(int i = 0; i < LED_COUNT; i++)
     NeoPixel.setPixelColor(i, set_color);
 
   NeoPixel.show();  // this is needed to update the pixels

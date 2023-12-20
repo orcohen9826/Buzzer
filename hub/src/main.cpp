@@ -6,9 +6,13 @@
 #include <DFRobotDFPlayerMini.h>
 #include <SoftwareSerial.h>
 #include <TM1637Display.h>
+// include web server for setting mode
+#include <WebServer.h>
+#include <Preferences.h>
 
 //Setting
-const int resetTime = 5000; // 5 seconds
+int resetTime = 5000; // 5 seconds
+boolean savingMode = false; // if true the buzzer will save the last winner and will not reset after 5 seconds
 
 
 // Predefined MAC addresses of the buzzers
@@ -31,6 +35,7 @@ void prinToLCD(String str , int row , int col = 0);
 int getBuzzerName(const uint8_t *macAddr);
 void printMacAddress(const uint8_t *macAddr);
 void printDetail(uint8_t type, int value);
+void settingMode();
 
 
 
@@ -67,14 +72,28 @@ int buzzerCount = 0;
 unsigned long lastPressTime = 0;
 boolean firstTime = true;
 
-
+// NVS
+Preferences preferences;
 
 void setup() {
   Serial.begin(9600);
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(100);
+  //handel setting mode wuth rememberd setting
+  preferences.begin("settings", true); // Open Preferences with my-app namespace. Read-only (second parameter) is true
+  resetTime = preferences.getInt("resetTime", 5000); // Get the integer value of resetTime. If key does not exist, return a default value of 5000
+  savingMode = preferences.getBool("savingMode", false); // Get the boolean value of savingMode. If key does not exist, return false
+  preferences.end(); // Close the Preferences
 
+  // print resetTime and savingMode
+
+  Serial.print("Reset Time: ");
+  Serial.println(resetTime);
+  Serial.print("Saving Mode: ");
+  Serial.println(savingMode ? "true" : "false");
+
+  // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("ESP-NOW initialization failed");
     prinToLCD("ESP-NOW initialization failed", 0 , 0);
@@ -94,7 +113,12 @@ void setup() {
   lcd.backlight();
   prinToLCD("HELLO OHAD!", 0,0);
   //lcd.clear();
-
+  delay(1000);
+  //clear the lcd and print to lcd
+  lcd.clear();
+  prinToLCD("Reset Time: " + String(resetTime), 0 , 0);
+  delay(2000);
+  lcd.clear();
 
   //Initialize the DFPlayer try 5 times
   mySoftwareSerial.begin(9600);
@@ -112,6 +136,12 @@ void setup() {
   if (retries >= 5){
     Serial.println("Unable to begin continue without MP3:");
     prinToLCD("Error, insert SD card", 1 , 0);
+    //changing to setting mode
+    delay(3000);
+    lcd.clear();
+    prinToLCD("Setting mode", 1 , 0);
+    Serial.println("Setting mode connect to hab AP and update setting");
+    settingMode();
     
   }
   else{
@@ -240,19 +270,45 @@ void OnDataSent(const uint8_t *macAddr, esp_now_send_status_t sendStatus) {
     Serial.println("Message failed to send");
   }
 }
-
-void resetBuzzers(){//sand reset message to all buzzers
+//sand reset message to all buzzers
+void resetBuzzers(){
+  int retries = 0;
   esp_err_t result;
   Serial.print("resetting buzzers ");
+  prinToLCD("Resetting buzzers", 0 , 0);
   for (int i = 0; i < buzzerCount; i++) { 
-    result = esp_now_send(buzzers[i], (uint8_t *)resetMsg, strlen(resetMsg));
+    do{
+      result = esp_now_send(buzzers[i], (uint8_t *)resetMsg, strlen(resetMsg));
+      if(result == ESP_OK){
+        Serial.printf("Send Status: %s\n", esp_err_to_name(result));  
+        break;      
+      }
+      Serial.printf("attempt number: %d\n", retries);
+      retries++;
+      delay(10);
+    }while(retries < 3);
+    Serial.printf("Send Status: %s\n", esp_err_to_name(result));        
   }
-  Serial.printf("Send Status: %s\n", esp_err_to_name(result));
   lastPressTime = 0;
   prinToLCD("Ready", 0 ,0 );
   firstTime = true;
   display.clear();
+  
 }
+
+//   esp_err_t result;
+
+//   Serial.print("resetting buzzers ");
+
+//   for (int i = 0; i < buzzerCount; i++) { 
+//     result = esp_now_send(buzzers[i], (uint8_t *)resetMsg, strlen(resetMsg));
+//   }
+//   Serial.printf("Send Status: %s\n", esp_err_to_name(result));
+//   lastPressTime = 0;
+//   prinToLCD("Ready", 0 ,0 );
+//   firstTime = true;
+//   display.clear();
+// }
 
 void addBuzzer(const uint8_t *macAddr) {//add buzzer to a temprary list of buzzers
   // Check if this MAC is already known
@@ -378,3 +434,93 @@ void printMacAddress(const uint8_t *macAddr) {//print the mac address in sutable
 //   }
   
 // }
+
+
+#include <WiFi.h>
+#include <WebServer.h>
+
+// Global variables for web server
+WebServer server(80);
+
+// Function declarations
+void handleRoot();
+void handleSaveSettings();
+
+void settingMode() {
+  // Initialize Wi-Fi in AP mode
+  WiFi.softAP("buzzer_controller", ""); // Set your desired SSID and password
+  Serial.println("Setting mode: Connect to buzzer_controller AP");
+
+  // Define routes
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/saveSettings", HTTP_POST, handleSaveSettings);
+
+  // Start the server
+  server.begin();
+  Serial.println("Web server started");
+
+  // Handle client requests
+  while (true) {
+    server.handleClient();
+  }
+}
+
+
+
+void handleRoot() {
+  // HTML content for the root page
+  String html = "<html><head>";
+  html += "<style>";
+  html += "body { text-align: center; font-family: Arial, sans-serif; font-size: 24px; }"; // Increase base font size by 20%
+  html += "h1 { font-size: 60px; }"; // Increase h1 font size by 30% (approx 26px)
+  html += "form { margin-top: 50px; }";
+  html += "input[type='number'], input[type='submit'] { width: 80%; max-width: 300px; height: 48px; margin: 10px 0; font-size: 24px; }"; // Adjusted for 20% increase
+  html += "input[type='checkbox'] { width: 30px; height: 30px; }"; // Slightly larger checkbox
+  html += "label { font-size: 40px; }"; // Increased label font size by 20%
+  html += "</style>";
+  html += "</head><body>";
+  html += "<h1>Buzzer Controller Settings</h1>";
+  html += "<form action='/saveSettings' method='post'>";
+  html += "<label>Reset Time (ms):</label><br>";
+  html += "<input type='number' name='resetTime' value='" + String(resetTime) + "'><br>";
+  html += "<label>Saving Mode:</label>";
+  html += "<input type='checkbox' name='savingMode'" + String(savingMode ? " checked" : "") + "><br>";
+  html += "<input type='submit' value='Save Settings'>";
+  html += "</form>";
+  html += "</body></html>";
+
+  server.send(200, "text/html", html);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void handleSaveSettings() {
+    // Update settings based on form data
+    if (server.hasArg("resetTime")) {
+        resetTime = server.arg("resetTime").toInt();
+    }
+    savingMode = server.hasArg("savingMode");
+
+    // Save settings to NVS
+    preferences.begin("settings", false); // Open Preferences with "settings" namespace. RW-mode is false
+    preferences.putInt("resetTime", resetTime);
+    preferences.putBool("savingMode", savingMode);
+    preferences.end(); // Close the Preferences
+
+    // Redirect back to the root page
+    server.sendHeader("Location", "/");
+    server.send(303);
+}
+
+
+
+  
