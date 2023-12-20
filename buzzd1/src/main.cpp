@@ -142,7 +142,7 @@ void loop() {
   buttonState = digitalRead(buttonPin);
   if (buttonState == LOW) { // Button is pressed
     sendPressedMsg();
-    delay(1000); // Debounce delay
+    lastPress = millis();
   }
   
 }
