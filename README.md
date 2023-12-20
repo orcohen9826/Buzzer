@@ -1,3 +1,6 @@
+
+![image](https://github.com/orcohen9826/Buzzer/assets/59200103/dffebd63-dbf8-47f4-922b-72c65b1f4354)
+
 # Quiz Buzzer System
 
 ## Overview
